@@ -1,0 +1,5 @@
+flask
+vanna[snowflake]
+db-dtypes
+python-dotenv
+flask-cors
