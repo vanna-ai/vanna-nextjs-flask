@@ -4,6 +4,7 @@ from flask_cors import CORS
 import pandas as pd
 import os
 from vanna.remote import VannaDefault
+import sys
 
 load_dotenv()
 app = Flask(__name__, static_url_path="")
@@ -45,8 +46,7 @@ def generate_sql():
 
 @app.route("/api/v1/run_sql", methods=["POST"])
 def run_sql():
-    data = request.json
-    sql = data.get("sql")
+    sql = request.args.get("sql")
     if sql is None:
         return jsonify({"type": "error", "error": "No SQL query provided"})
     try:
@@ -58,7 +58,7 @@ def run_sql():
 
 @app.route("/api/v1/download_csv", methods=["POST"])
 def download_csv():
-    data = request.json
+    data = request.get_json()
     df_json = data.get("df")
     if df_json is None:
         return jsonify({"type": "error", "error": "No DataFrame provided"})
@@ -71,38 +71,28 @@ def download_csv():
     )
 
 
-@app.route("/api/v1/generate_plotly_figure", methods=["POST"])
-def generate_plotly_figure():
-    data = request.json
-    df_json = data.get("df")
-    question = data.get("question")
-    sql = data.get("sql")
-    if not df_json or not question or not sql:
-        return jsonify(
-            {"type": "error", "error": "Missing data for generating plotly figure"}
-        )
-    df = pd.read_json(df_json, orient="records")
-    # Placeholder logic, replace with your actual method calls
-    fig_json = '{"placeholder": true}'  # Placeholder response
-    return jsonify({"type": "plotly_figure", "fig": fig_json})
-
-
 @app.route("/api/v1/get_training_data", methods=["GET"])
 def get_training_data():
-    # Placeholder logic, replace with your actual method call to fetch training data
-    df = pd.DataFrame()  # Placeholder DataFrame
-    return jsonify({"type": "df", "df": df.head(25).to_json(orient="records")})
+    df = vn.get_training_data()
+
+    print(df, file=sys.stderr)
+    return jsonify(
+        {
+            "type": "df",
+            "id": "training_data",
+            "df": df.head(25).to_json(orient="records"),
+        }
+    )
 
 
 @app.route("/api/v1/remove_training_data", methods=["POST"])
 def remove_training_data():
     data = request.json
-    id = data.get("id")
-    if id is None:
+    new_id = data.get("id")
+    if new_id is None:
         return jsonify({"type": "error", "error": "No id provided"})
     # Placeholder logic, replace with actual call to remove training data
-    success = True  # Placeholder for actual success/failure response
-    if success:
+    if vn.remove_training_data(id=new_id):
         return jsonify({"success": True})
     else:
         return jsonify({"type": "error", "error": "Couldn't remove training data"})
@@ -110,7 +100,7 @@ def remove_training_data():
 
 @app.route("/api/v1/train", methods=["POST"])
 def add_training_data():
-    data = request.json
+    data = request.get_json()
     question = data.get("question")
     sql = data.get("sql")
     ddl = data.get("ddl")
@@ -124,42 +114,17 @@ def add_training_data():
         return jsonify({"type": "error", "error": str(e)})
 
 
-@app.route("/api/v1/generate_followup_questions", methods=["POST"])
-def generate_followup_questions():
-    data = request.json
-    df_json = data.get("df")
-    question = data.get("question")
-    if not df_json or not question:
-        return jsonify(
-            {"type": "error", "error": "Missing data for generating followup questions"}
-        )
-    df = pd.read_json(df_json, orient="records")
-    # Placeholder logic for generating followup questions
-    followup_questions = [
-        "What is the next question?",
-        "Another followup question?",
-    ]  # Placeholder
-    return jsonify(
-        {
-            "type": "question_list",
-            "questions": followup_questions,
-            "header": "Followup questions:",
-        }
-    )
-
-
 @app.route("/api/v1/load_question", methods=["POST"])
 def load_question():
-    data = request.json
-    # Assuming the necessary data is question, sql, df_json (as a string), and optionally fig_json and followup_questions
+    data = request.get_json()
     question = data.get("question")
     sql = data.get("sql")
     df_json = data.get("df")
-    fig_json = data.get("fig_json", "{}")  # Default to empty JSON if not provided
+    fig_json = data.get("fig_json", "{}")
     followup_questions = data.get("followup_questions", [])
     if not question or not sql or not df_json:
         return jsonify({"type": "error", "error": "Missing required data"})
-    # No actual loading as this is a stateless example; just echoing back for demonstration
+
     return jsonify(
         {
             "type": "question_data",
