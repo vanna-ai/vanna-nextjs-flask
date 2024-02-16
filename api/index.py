@@ -14,6 +14,7 @@ cors = CORS(app, resources={r"/api/*": {"origins": "*"}})
 # SETUP
 cache = MemoryCache()
 
+# VANNA INITIALIZATION
 vannakey = os.environ.get("VANNA_API_KEY")
 account = os.environ.get("SNOWFLAKE_ACCOUNT")
 username = os.environ.get("SNOWFLAKE_USERNAME")
