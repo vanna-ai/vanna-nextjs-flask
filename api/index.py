@@ -5,8 +5,6 @@ from flask_cors import CORS
 import flask
 import os
 from helpers.cache import MemoryCache
-import vanna as vn
-
 from vanna.remote import VannaDefault
 
 load_dotenv()
