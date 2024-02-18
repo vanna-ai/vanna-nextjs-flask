@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import Sidebar from "./Sidebar";
 import Chatscreen from "./Chatscreen";
 import { AxiosResponse } from "axios";

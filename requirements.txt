@@ -1,5 +1,6 @@
 flask
-vanna[snowflake]
-db-dtypes
 python-dotenv
 flask-cors
+requests
+pandas
+snowflake-connector-python

@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { BiSend } from "react-icons/bi";
 import { v4 as uuidv4 } from "uuid";
 import MessageHistory from "./MessageHistory";

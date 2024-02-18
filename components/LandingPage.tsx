@@ -1,6 +1,7 @@
 import React from "react";
 import Image from "next/image";
 import { TQuestions } from "./Chatscreen";
+import { v4 as uuidv4 } from "uuid";
 
 type LandingPageProps = {
   questions: TQuestions;
@@ -24,9 +25,12 @@ const LandingPage = (props: LandingPageProps) => {
         <text>{questions && "header" in questions && questions.header}</text>
         {questions &&
           "questions" in questions &&
-          questions.questions.map((ques: string, id: number) => {
+          questions.questions.map((ques: string) => {
             return (
-              <button className="border border-1 m-2 p-2 rounded-lg" key={id}>
+              <button
+                className="border border-1 m-2 p-2 rounded-lg"
+                key={uuidv4()}
+              >
                 {ques}
               </button>
             );
