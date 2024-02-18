@@ -3,7 +3,7 @@ from flask import Flask, jsonify, Response, request
 from flask_cors import CORS
 import pandas as pd
 import os
-from vanna.remote import VannaDefault
+from dependencies.vanna import VannaDefault
 import sys
 
 load_dotenv()
@@ -26,6 +26,7 @@ vn.connect_to_snowflake(
 
 @app.route("/api/v1/generate_questions", methods=["GET"])
 def generate_questions():
+    print({database})
     return jsonify(
         {
             "type": "question_list",
@@ -46,9 +47,11 @@ def generate_sql():
 
 @app.route("/api/v1/run_sql", methods=["POST"])
 def run_sql():
-    sql = request.args.get("sql")
+    data = request.get_json()
+    sql = data.get("sql") if data else None
+    print('sql', sql)
     if sql is None:
-        return jsonify({"type": "error", "error": "No SQL query provided"})
+        return jsonify({"type": "error", "error": "No SQL query provided", "sql": sql})
     try:
         df = vn.run_sql(sql=sql)
         return jsonify({"type": "df", "df": df.head(10).to_json(orient="records")})
@@ -87,7 +90,7 @@ def get_training_data():
 
 @app.route("/api/v1/remove_training_data", methods=["POST"])
 def remove_training_data():
-    data = request.json
+    data = request.get_json()
     new_id = data.get("id")
     if new_id is None:
         return jsonify({"type": "error", "error": "No id provided"})
