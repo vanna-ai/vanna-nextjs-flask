@@ -47,8 +47,9 @@ def generate_sql():
 
 @app.route("/api/v1/run_sql", methods=["POST"])
 def run_sql():
-    sql = request.args.get("sql")
-    print(sql)
+    data = request.get_json()
+    sql = data.get("sql") if data else None
+    print('sql', sql)
     if sql is None:
         return jsonify({"type": "error", "error": "No SQL query provided", "sql": sql})
     try:
@@ -89,7 +90,7 @@ def get_training_data():
 
 @app.route("/api/v1/remove_training_data", methods=["POST"])
 def remove_training_data():
-    data = request.json
+    data = request.get_json()
     new_id = data.get("id")
     if new_id is None:
         return jsonify({"type": "error", "error": "No id provided"})
