@@ -38,3 +38,4 @@ __pycache__
 env
 env*
 *.backup
+.next

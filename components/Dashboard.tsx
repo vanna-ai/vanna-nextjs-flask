@@ -3,9 +3,12 @@ import React, { useState } from "react";
 import Sidebar from "./Sidebar";
 import Chatscreen from "./Chatscreen";
 import { AxiosResponse } from "axios";
+import { RUNResponse, SQLResponse } from "@/helpers/types";
 
 type FunctionProps = {
   generateQuestions: () => Promise<AxiosResponse<any, any>>;
+  generateSQL: (question: string) => Promise<SQLResponse>;
+  runSQL: (sql: string) => Promise<RUNResponse>;
 };
 
 const Dashboard: React.FC<FunctionProps> = (props: FunctionProps) => {
@@ -14,7 +17,7 @@ const Dashboard: React.FC<FunctionProps> = (props: FunctionProps) => {
     setShowSideBar(val);
   };
 
-  const { generateQuestions } = props;
+  const { generateQuestions, generateSQL, runSQL } = props;
 
   return (
     <main className="flex min-h-screen text-lg">
@@ -27,6 +30,8 @@ const Dashboard: React.FC<FunctionProps> = (props: FunctionProps) => {
         showSideBar={showSideBar}
         handleShowSideBar={handleShowSideBar}
         generateQuestions={generateQuestions}
+        generateSQL={generateSQL}
+        runSQL={runSQL}
       />
     </main>
   );

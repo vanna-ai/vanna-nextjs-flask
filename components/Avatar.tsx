@@ -15,6 +15,7 @@ const Avatar: React.FC<AvatarProps> = (props: AvatarProps) => {
         src={path}
         width={40}
         height={40}
+        priority
       />
     </div>
   );

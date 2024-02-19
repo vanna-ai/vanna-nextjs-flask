@@ -1,5 +1,11 @@
 import Dashboard from "@/components/Dashboard";
-import { generateQuestions } from "@/actions/actions";
+import { generateQuestions, generateSQL, runSQL } from "@/actions/actions";
 export default async function Home() {
-  return <Dashboard generateQuestions={generateQuestions} />;
+  return (
+    <Dashboard
+      generateQuestions={generateQuestions}
+      generateSQL={generateSQL}
+      runSQL={runSQL}
+    />
+  );
 }
