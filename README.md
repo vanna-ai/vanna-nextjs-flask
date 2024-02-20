@@ -18,5 +18,5 @@ npm run dev (or) yarn dev
 - Can be deployed to vercel in a single command from local.
 
 ```bash
-    vercel
+vercel
 ```
