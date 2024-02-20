@@ -87,18 +87,26 @@ const Chatscreen: React.FC<ChatscreenProps> = ({
       handleChangeMessageHistory(newMessage);
 
       const aiRes = await generateSQL(msg);
-      console.log({ aiRes });
 
-      if (aiRes.text === "No SELECT statement could be found in the SQL code") {
+      if (
+        aiRes?.text === "No SELECT statement could be found in the SQL code"
+      ) {
         newMessage = {
-          ai: aiRes.text,
+          ai: aiRes?.text,
+          user: "",
+          messageId: uuidv4(),
+          type: MESSAGE_TYPES.error,
+        };
+      } else if ("error" in aiRes) {
+        newMessage = {
+          ai: aiRes?.error as string,
           user: "",
           messageId: uuidv4(),
           type: MESSAGE_TYPES.error,
         };
       } else {
         newMessage = {
-          ai: aiRes.text,
+          ai: aiRes?.text,
           user: "",
           messageId: uuidv4(),
           type: MESSAGE_TYPES.sql,
@@ -121,7 +129,7 @@ const Chatscreen: React.FC<ChatscreenProps> = ({
 
   return (
     <div className={`z-10 bg-slate-700 ${showSideBar ? "w-4/5" : "w-screen"}`}>
-      {messageHistory.length === 1 ? (
+      {messageHistory?.length === 1 ? (
         <Homescreen
           questions={generatedQuestions as TQuestions}
           generateSQL={generateSQL}

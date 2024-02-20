@@ -24,8 +24,8 @@ const ChatButtons = (props: Props) => {
     handleSaveClick,
   } = props;
   const shouldShowButtons =
-    currentIndex === messageHistory.length - 1 &&
-    value.type === MESSAGE_TYPES.sql;
+    currentIndex === messageHistory?.length - 1 &&
+    value?.type === MESSAGE_TYPES.sql;
 
   // Function to render the buttons based on the mode
   const renderButtons = () => {

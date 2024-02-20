@@ -55,9 +55,9 @@ const Homescreen = (props: HomescreenProps) => {
       <p className="font-bold p-2 m-2">Talk to your data!</p>
 
       <div className="flex flex-col justify-start items-start">
-        <p>{questions && "header" in questions && questions.header}</p>
+        <p>{questions && "header" in questions && questions?.header}</p>
         {!loading ? (
-          questions.questions.map((ques: string) => {
+          questions?.questions?.map((ques: string) => {
             return (
               <button
                 className="border border-1 m-2 p-2 rounded-lg"

@@ -31,14 +31,21 @@ const MessageHistory = (props: MessageHistoryProps) => {
       try {
         handleModeChange(MODES.run);
         let dfResponse = await runSQL(val.ai);
-
         let newMessage: TMessage = {
-          ai: dfResponse.df,
+          ai: dfResponse?.df,
           user: "",
           messageId: uuidV4(),
           type: MESSAGE_TYPES.df,
         };
 
+        if ("error" in dfResponse) {
+          newMessage = {
+            ai: dfResponse.error as string,
+            user: "",
+            messageId: uuidV4(),
+            type: MESSAGE_TYPES.error,
+          };
+        }
         handleChangeMessageHistory(newMessage);
       } catch (error: any) {
         console.error(error);
@@ -67,14 +74,14 @@ const MessageHistory = (props: MessageHistoryProps) => {
 
   const renderChild = (val: TMessage) => {
     const handleChangeSQL = (e: ChangeEvent<HTMLTextAreaElement>): void => {
-      setCurrSQL(e.target.value);
+      setCurrSQL(e?.target?.value);
     };
 
     if (mode === MODES.edit) {
       return (
         <textarea
           className="flex text-black w-[30rem] h-[15rem] font-bold text-sm rounded p-1"
-          defaultValue={val.ai}
+          defaultValue={val?.ai}
           onChange={handleChangeSQL}
         />
       );
@@ -92,12 +99,12 @@ const MessageHistory = (props: MessageHistoryProps) => {
 
   return (
     <div ref={chatRef} className="p-2 m-4 max-h-[80vh] overflow-y-scroll">
-      {messageHistory.map((val, ix) => (
-        <div key={val.messageId}>
-          {val.ai && (
+      {messageHistory?.map((val, ix) => (
+        <div key={val?.messageId}>
+          {val?.ai && (
             <div className="flex flex-col items-start justify-center">
               <ChatBubble
-                value={val.ai}
+                value={val?.ai}
                 title="Vanna"
                 logo={"/assets/vanna_circle.png"}
                 alt="red"
@@ -116,9 +123,9 @@ const MessageHistory = (props: MessageHistoryProps) => {
             </div>
           )}
 
-          {val.user && (
+          {val?.user && (
             <ChatBubble
-              value={val.user}
+              value={val?.user}
               title="User"
               logo={"/assets/user.png"}
               alt="blue"

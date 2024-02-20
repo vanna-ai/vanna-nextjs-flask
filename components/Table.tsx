@@ -19,7 +19,7 @@ const Table: React.FC<TableProps> = ({ data }) => {
     return (
       <thead className="bg-black">
         <tr>
-          {headers.map((header) => (
+          {headers?.map((header) => (
             <th
               key={header}
               // Adjusted to use rem instead of px for minimum width
@@ -37,7 +37,7 @@ const Table: React.FC<TableProps> = ({ data }) => {
   const renderTableRows = (data: DataItem[]) => {
     return (
       <tbody className="bg-white divide-y divide-gray-200">
-        {data.map((item) => (
+        {data?.map((item) => (
           <tr key={uuidV4()}>
             {Object.values(item).map((value) => (
               <td

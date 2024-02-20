@@ -29,5 +29,7 @@ export async function runSQL(sql: string) {
     }
   );
 
+  console.log("run", response.data);
+
   return response.data;
 }
