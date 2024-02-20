@@ -1,5 +1,5 @@
 import React from "react";
-
+import { v4 as uuidV4 } from "uuid";
 // Define the type for your data item
 type DataItem = {
   [key: string]: string | number;
@@ -23,7 +23,7 @@ const Table: React.FC<TableProps> = ({ data }) => {
             <th
               key={header}
               // Adjusted to use rem instead of px for minimum width
-              className="min-w-[7.5rem] px-6 py-3 text-left text-sm font-bold text-white uppercase tracking-wider"
+              className=" w-[5rem] px-6 py-3 text-left text-sm font-bold text-white uppercase tracking-wider"
             >
               {header.replace("_", " ")}
             </th>
@@ -37,12 +37,12 @@ const Table: React.FC<TableProps> = ({ data }) => {
   const renderTableRows = (data: DataItem[]) => {
     return (
       <tbody className="bg-white divide-y divide-gray-200">
-        {data.map((item, index) => (
-          <tr key={index}>
-            {Object.values(item).map((value, i) => (
+        {data.map((item) => (
+          <tr key={uuidV4()}>
+            {Object.values(item).map((value) => (
               <td
-                key={i}
-                className="min-w-[7.5rem] px-6 py-4 whitespace-nowrap text-sm text-black"
+                key={uuidV4()}
+                className="w-[5rem] px-6 py-4 whitespace-nowrap text-sm text-black"
               >
                 {value}
               </td>
@@ -54,7 +54,7 @@ const Table: React.FC<TableProps> = ({ data }) => {
   };
 
   return (
-    <div className="flex flex-col max-w-[70rem]">
+    <div className="flex flex-col">
       <div className="-my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
         <div className="py-2 align-middle inline-block min-w-full sm:px-6 lg:px-8">
           <div className="shadow overflow-hidden border-b border-gray-200 sm:rounded-lg">

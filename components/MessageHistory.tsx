@@ -24,7 +24,7 @@ const MessageHistory = (props: MessageHistoryProps) => {
     setMode(value);
   }, []);
 
-  const [curSQL, setCurrSQL] = useState("");
+  const [currSQL, setCurrSQL] = useState("");
 
   const handleRunClick = useCallback(
     async (val: TMessage) => {
@@ -57,12 +57,12 @@ const MessageHistory = (props: MessageHistoryProps) => {
 
       const newMessageHistory = messageHistory.map((msg, index): TMessage => {
         console.log("ixid", ix, index);
-        return index === ix ? { ...msg, ai: curSQL } : msg;
+        return index === ix ? { ...msg, ai: currSQL } : msg;
       });
 
       handleChangeMessageHistory(undefined, newMessageHistory);
     },
-    [handleModeChange, handleChangeMessageHistory, messageHistory, curSQL]
+    [handleModeChange, handleChangeMessageHistory, messageHistory, currSQL]
   ); // Dependencies
 
   const renderChild = (val: TMessage) => {
@@ -101,7 +101,6 @@ const MessageHistory = (props: MessageHistoryProps) => {
                 title="Vanna"
                 logo={"/assets/vanna_circle.png"}
                 alt="red"
-                mode={mode}
                 child={renderChild(val)}
               />
 

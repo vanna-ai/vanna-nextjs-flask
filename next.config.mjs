@@ -7,6 +7,8 @@ const nextConfig = {
         "node_modules/@esbuild/**/*",
         "node_modules/terser/**/*",
         "node_modules/webpack/**/*",
+        "node_modules/@next/**/*",
+        "/vercel/.cache/yarn/v6/**/*",
       ],
       "/*": ["public/static/work/**/*.png"],
       "/**": ["public/static/work/**/*.png"],
