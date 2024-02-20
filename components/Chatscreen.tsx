@@ -1,9 +1,14 @@
 "use client";
-import React, { useEffect, useState, KeyboardEvent } from "react";
+import React, {
+  useLayoutEffect,
+  useState,
+  KeyboardEvent,
+  useCallback,
+} from "react";
 import { BiSend } from "react-icons/bi";
 import { v4 as uuidv4 } from "uuid";
 import MessageHistory from "./MessageHistory";
-import LandingPage from "./LandingPage";
+import Homescreen from "./Homescreen";
 import {
   SQLResponse,
   TMessage,
@@ -12,44 +17,46 @@ import {
 } from "@/helpers/types";
 import { AxiosResponse } from "axios";
 import { MESSAGE_TYPES } from "@/helpers/enums";
+import { useRoot } from "@/context/ContextProvider";
 
 type ChatscreenProps = {
-  showSideBar: boolean;
-  handleShowSideBar: (showSideBar: boolean) => any;
   generateQuestions: () => Promise<AxiosResponse<any, any>>;
   generateSQL: (question: string) => Promise<SQLResponse>;
   runSQL: (sql: string) => Promise<RUNResponse>;
 };
 
-const initState: Array<TMessage> = [
-  { ai: "", user: "", messageId: "", type: "" },
-];
 const Chatscreen: React.FC<ChatscreenProps> = ({
-  showSideBar,
   generateQuestions,
   generateSQL,
   runSQL,
 }: Readonly<ChatscreenProps>) => {
   const [message, setMessage] = useState<string>("");
-  const [messageHistory, setMessageHistory] =
-    useState<Array<TMessage>>(initState);
+
+  const { showSideBar, messageHistory, handleChangeMessageHistory } = useRoot();
 
   const [disabled, setDisabled] = useState(message.length === 0);
   const [loading, setLoading] = useState(true);
   const [generatedQuestions, setGeneratedQuestions] = useState({});
 
-  useEffect(() => {
+  useLayoutEffect(() => {
+    let isMounted = true; // Flag to track component's mounting status
+
     async function fetchData() {
       let questions = await generateQuestions();
-      console.log({ questions });
-      setGeneratedQuestions(questions);
-      setLoading(false);
+      if (isMounted) {
+        // Only update state if component is still mounted
+        console.log({ questions });
+        setGeneratedQuestions(questions);
+        setLoading(false);
+      }
     }
 
-    if (messageHistory.length === 1) {
-      fetchData();
-    }
-  }, [generateQuestions, messageHistory]);
+    fetchData();
+
+    return () => {
+      isMounted = false; // Set flag to false when the component unmounts
+    };
+  }, [generateQuestions]);
 
   const handleInputChange = (e: { target: { value: string } }) => {
     if (e.target.value.length > 0) {
@@ -61,29 +68,49 @@ const Chatscreen: React.FC<ChatscreenProps> = ({
     }
   };
 
-  const handleSend = async () => {
-    let newMessage: TMessage = {
-      ai: "",
-      user: `${message}`,
-      messageId: uuidv4(),
-      type: MESSAGE_TYPES.user,
-    };
+  const handleSend = useCallback(async () => {
+    if (message.length === 0) return; // Guard clause to prevent sending empty messages
 
-    setMessageHistory((prev: Array<TMessage>) => [...prev, newMessage]);
-    setMessage("");
-    setDisabled(true);
+    try {
+      const newMessageId = uuidv4();
 
-    const aiRes = await generateSQL(message);
-    console.log({ aiRes });
-    newMessage = {
-      ai: aiRes.text,
-      user: "",
-      messageId: uuidv4(),
-      type: MESSAGE_TYPES.sql,
-    };
+      const msg = message.slice();
+      setMessage("");
+      setDisabled(true);
+      let newMessage: TMessage = {
+        ai: "",
+        user: msg,
+        messageId: newMessageId,
+        type: MESSAGE_TYPES.user,
+      };
 
-    setMessageHistory((prev: Array<TMessage>) => [...prev, newMessage]);
-  };
+      handleChangeMessageHistory(newMessage);
+
+      const aiRes = await generateSQL(msg);
+      console.log({ aiRes });
+
+      if (aiRes.text === "No SELECT statement could be found in the SQL code") {
+        newMessage = {
+          ai: aiRes.text,
+          user: "",
+          messageId: uuidv4(),
+          type: MESSAGE_TYPES.error,
+        };
+      } else {
+        newMessage = {
+          ai: aiRes.text,
+          user: "",
+          messageId: uuidv4(),
+          type: MESSAGE_TYPES.sql,
+        };
+      }
+
+      handleChangeMessageHistory(newMessage);
+    } catch (error: any) {
+      console.error("Failed to handle send:", error);
+      // Handle the error state appropriately
+    }
+  }, [message, handleChangeMessageHistory, generateSQL]); // Dependencies
 
   const handleKeyDown = (event: KeyboardEvent<HTMLInputElement>): void => {
     if (event.key === "Enter" && !disabled) {
@@ -95,18 +122,13 @@ const Chatscreen: React.FC<ChatscreenProps> = ({
   return (
     <div className={`z-10 bg-slate-700 ${showSideBar ? "w-4/5" : "w-screen"}`}>
       {messageHistory.length === 1 ? (
-        <LandingPage
+        <Homescreen
           questions={generatedQuestions as TQuestions}
-          setMessageHistory={setMessageHistory}
           generateSQL={generateSQL}
           loading={loading}
         />
       ) : (
-        <MessageHistory
-          messageHistory={messageHistory}
-          runSQL={runSQL}
-          setMessageHistory={setMessageHistory}
-        />
+        <MessageHistory runSQL={runSQL} />
       )}
       <div
         className={`z-10 fixed bottom-0 border-2 border-gray-800 p-2 mt-2 rounded-2xl m-8 ${

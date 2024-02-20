@@ -1,4 +1,4 @@
-import Dashboard from "@/components/Dashboard";
+import Dashboard from "@/pages/Dashboard";
 import { generateQuestions, generateSQL, runSQL } from "@/actions/actions";
 export default async function Home() {
   return (

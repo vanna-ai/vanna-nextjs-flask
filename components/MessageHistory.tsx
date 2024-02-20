@@ -1,61 +1,98 @@
 "use client";
-import React, { useState, Dispatch, SetStateAction } from "react";
+import React, { useState, useCallback, ChangeEvent } from "react";
 import ChatBubble from "./ChatBubble";
 import { TMessage, RUNResponse } from "@/helpers/types";
 import { MESSAGE_TYPES, MODES } from "@/helpers/enums";
-import Button from "./Button";
 import { v4 as uuidV4 } from "uuid";
 import Table from "./Table";
-import Swal from "sweetalert2";
+import { useRoot } from "@/context/ContextProvider";
+import ChatButtons from "./ChatButtons";
+import useChatScroll from "./ChatScroll";
 
 type MessageHistoryProps = {
-  messageHistory: Array<TMessage>;
-  setMessageHistory: Dispatch<SetStateAction<TMessage[]>>;
   runSQL: (sql: string) => Promise<RUNResponse>;
 };
 
 const MessageHistory = (props: MessageHistoryProps) => {
-  const { messageHistory, setMessageHistory, runSQL } = props;
+  const { runSQL } = props;
   const [mode, setMode] = useState(MODES.run);
 
-  const handleModeChange = (value: string) => {
+  const { messageHistory, handleChangeMessageHistory } = useRoot();
+  const chatRef = useChatScroll(messageHistory);
+
+  const handleModeChange = useCallback((value: string) => {
     setMode(value);
-  };
+  }, []);
 
-  const handleRunClick = async (val: TMessage) => {
-    try {
-      handleModeChange(MODES.run);
-      let dfResponse = await runSQL(val.ai);
+  const [curSQL, setCurrSQL] = useState("");
 
-      let newMessage: TMessage = {
-        ai: dfResponse.df,
-        user: "",
-        messageId: uuidV4(),
-        type: MESSAGE_TYPES.df,
-      };
+  const handleRunClick = useCallback(
+    async (val: TMessage) => {
+      try {
+        handleModeChange(MODES.run);
+        let dfResponse = await runSQL(val.ai);
 
-      setMessageHistory((prev: Array<TMessage>) => [...prev, newMessage]);
-    } catch (error: any) {
-      Swal.fire({
-        title: "Error!",
-        text: error,
-        icon: "error",
-        confirmButtonText: "Ok",
-      });
-    }
-  };
+        let newMessage: TMessage = {
+          ai: dfResponse.df,
+          user: "",
+          messageId: uuidV4(),
+          type: MESSAGE_TYPES.df,
+        };
+
+        handleChangeMessageHistory(newMessage);
+      } catch (error: any) {
+        console.error(error);
+      }
+    },
+    [handleModeChange, runSQL, handleChangeMessageHistory]
+  );
 
   const handleEditClick = () => {
     handleModeChange(MODES.edit);
   };
 
-  const handleSaveClick = () => {
-    handleModeChange(MODES.run);
+  const handleSaveClick = useCallback(
+    (ix: number) => {
+      handleModeChange(MODES.run);
+
+      const newMessageHistory = messageHistory.map((msg, index): TMessage => {
+        console.log("ixid", ix, index);
+        return index === ix ? { ...msg, ai: curSQL } : msg;
+      });
+
+      handleChangeMessageHistory(undefined, newMessageHistory);
+    },
+    [handleModeChange, handleChangeMessageHistory, messageHistory, curSQL]
+  ); // Dependencies
+
+  const renderChild = (val: TMessage) => {
+    const handleChangeSQL = (e: ChangeEvent<HTMLTextAreaElement>): void => {
+      setCurrSQL(e.target.value);
+    };
+
+    if (mode === MODES.edit) {
+      return (
+        <textarea
+          className="flex text-black w-[30rem] h-[15rem] font-bold text-sm rounded p-1"
+          defaultValue={val.ai}
+          onChange={handleChangeSQL}
+        />
+      );
+    } else if (val.type === MESSAGE_TYPES.df) {
+      const data = JSON.parse(val.ai);
+      if (Array.isArray(data) && data.length === 0) {
+        return <p className="font-bold text-base">Relevant data not found!</p>;
+      } else {
+        return <Table data={data} />;
+      }
+    } else {
+      return null;
+    }
   };
 
   return (
-    <div className="p-2 m-4 max-h-[80vh] overflow-y-scroll">
-      {messageHistory.map((val) => (
+    <div ref={chatRef} className="p-2 m-4 max-h-[80vh] overflow-y-scroll">
+      {messageHistory.map((val, ix) => (
         <div key={val.messageId}>
           {val.ai && (
             <div className="flex flex-col items-start justify-center">
@@ -65,43 +102,18 @@ const MessageHistory = (props: MessageHistoryProps) => {
                 logo={"/assets/vanna_circle.png"}
                 alt="red"
                 mode={mode}
-                child={
-                  mode === MODES.edit ? (
-                    <textarea
-                      className="flex text-black w-[30rem] h-[15rem] font-bold text-sm rounded p-1"
-                      value={val.ai}
-                      onChange={() => console.log("Hi")}
-                    />
-                  ) : val.type === MESSAGE_TYPES.df ? (
-                    <Table dataString={val.ai} />
-                  ) : null
-                }
+                child={renderChild(val)}
               />
 
-              {val.type === MESSAGE_TYPES.sql && (
-                <div className="flex flex-row items-center justify-center gap-4 ml-24">
-                  {mode === MODES.run ? (
-                    <>
-                      <Button
-                        text={MODES.run}
-                        className=""
-                        handleClick={() => handleRunClick(val)}
-                      />
-                      <Button
-                        text={MODES.edit}
-                        className=""
-                        handleClick={handleEditClick}
-                      />
-                    </>
-                  ) : (
-                    <Button
-                      text="Save"
-                      className=""
-                      handleClick={handleSaveClick}
-                    />
-                  )}
-                </div>
-              )}
+              <ChatButtons
+                currentIndex={ix}
+                messageHistory={messageHistory}
+                value={val}
+                mode={mode}
+                handleRunClick={handleRunClick}
+                handleEditClick={handleEditClick}
+                handleSaveClick={handleSaveClick}
+              />
             </div>
           )}
 

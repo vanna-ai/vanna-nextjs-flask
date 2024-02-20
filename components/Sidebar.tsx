@@ -1,16 +1,9 @@
+import { useRoot } from "@/context/ContextProvider";
 import React from "react";
 import { HiMenuAlt3 } from "react-icons/hi";
 
-type SidebarProps = {
-  showSideBar: boolean;
-  handleShowSideBar: (showSideBar: boolean) => any;
-  functions: object;
-};
-
-export default function Sidebar({
-  showSideBar,
-  handleShowSideBar,
-}: Readonly<SidebarProps>) {
+export default function Sidebar() {
+  const { showSideBar, handleShowSideBar } = useRoot();
   const handleShow = () => {
     handleShowSideBar(!showSideBar);
   };

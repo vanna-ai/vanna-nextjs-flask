@@ -5,6 +5,7 @@ type AvatarProps = {
   alt: string;
   className: string;
 };
+
 const Avatar: React.FC<AvatarProps> = (props: AvatarProps) => {
   const { path, alt, className } = props;
   return (
@@ -15,7 +16,6 @@ const Avatar: React.FC<AvatarProps> = (props: AvatarProps) => {
         src={path}
         width={40}
         height={40}
-        priority
       />
     </div>
   );

@@ -1,39 +1,44 @@
-import React, { SetStateAction, Dispatch } from "react";
+import React from "react";
 import Image from "next/image";
 import { SQLResponse, TMessage, TQuestions } from "@/helpers/types";
 import { v4 as uuidv4 } from "uuid";
 import { MESSAGE_TYPES } from "@/helpers/enums";
+import { useRoot } from "@/context/ContextProvider";
 
-type LandingPageProps = {
+type HomescreenProps = {
   questions: TQuestions;
-  setMessageHistory: Dispatch<SetStateAction<TMessage[]>>;
   generateSQL: (question: string) => Promise<SQLResponse>;
   loading: boolean;
 };
-const LandingPage = (props: LandingPageProps) => {
-  const { questions, setMessageHistory, generateSQL, loading } = props;
+const Homescreen = (props: HomescreenProps) => {
+  const { questions, generateSQL, loading } = props;
+
+  const { handleChangeMessageHistory } = useRoot();
 
   const handleSelectQuestion = async (value: string) => {
-    let newMessage: TMessage = {
-      ai: "",
-      user: value,
-      messageId: uuidv4(),
-      type: MESSAGE_TYPES.user,
-    };
-    setMessageHistory((prev: Array<TMessage>) => [...prev, newMessage]);
+    try {
+      let newMessage: TMessage = {
+        ai: "",
+        user: value,
+        messageId: uuidv4(),
+        type: MESSAGE_TYPES.user,
+      };
+      handleChangeMessageHistory(newMessage);
 
-    let SQL = await generateSQL(value);
-    console.log({ SQL });
+      let SQL = await generateSQL(value);
 
-    const { text } = SQL;
-    newMessage = {
-      ai: text,
-      user: "",
-      messageId: uuidv4(),
-      type: MESSAGE_TYPES.sql,
-    };
+      const { text } = SQL;
+      newMessage = {
+        ai: text,
+        user: "",
+        messageId: uuidv4(),
+        type: MESSAGE_TYPES.sql,
+      };
 
-    setMessageHistory((prev: Array<TMessage>) => [...prev, newMessage]);
+      handleChangeMessageHistory(newMessage);
+    } catch (error: any) {
+      console.error(error);
+    }
   };
 
   return (
@@ -45,7 +50,6 @@ const LandingPage = (props: LandingPageProps) => {
           src={"/assets/vanna_circle.png"}
           width={200}
           height={200}
-          priority
         />
       </div>
       <p className="font-bold p-2 m-2">Talk to your data!</p>
@@ -72,4 +76,4 @@ const LandingPage = (props: LandingPageProps) => {
   );
 };
 
-export default LandingPage;
+export default Homescreen;
