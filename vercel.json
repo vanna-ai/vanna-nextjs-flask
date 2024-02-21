@@ -1,3 +1,8 @@
 {
-  "rewrites": [{ "source": "/(.*)", "destination": "/api/index" }]
+  "rewrites": [{ "source": "/(.*)", "destination": "/api/index" }],
+  "functions": {
+    "api/**/*": {
+      "excludeFiles": "{.next,*.cache,node_modules,public,app,components,context,helpers,pages}/**"
+    }
+  }
 }

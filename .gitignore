@@ -35,6 +35,10 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 __pycache__
+
+# env
 env
 env*
 *.backup
+.next
+newenv

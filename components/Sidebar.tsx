@@ -1,16 +1,9 @@
+import { useRoot } from "@/context/ContextProvider";
 import React from "react";
 import { HiMenuAlt3 } from "react-icons/hi";
 
-type SidebarProps = {
-  showSideBar: boolean;
-  handleShowSideBar: (showSideBar: boolean) => any;
-  functions: object;
-};
-
-export default function Sidebar({
-  showSideBar,
-  handleShowSideBar,
-}: Readonly<SidebarProps>) {
+export default function Sidebar() {
+  const { showSideBar, handleShowSideBar } = useRoot();
   const handleShow = () => {
     handleShowSideBar(!showSideBar);
   };
@@ -23,11 +16,11 @@ export default function Sidebar({
         showSideBar ? "shadow-right" : ""
       }`}
     >
-      <text
+      <p
         className={`${showSideBar ? "my-3 mx-2 p-2 font-extrabold" : "hidden"}`}
       >
         Vanna AI
-      </text>
+      </p>
       <button
         className={`transition p-2 my-4 mx-2 rounded hover:-translate-y-1 hover:scale-110 duration-300 border ${
           showSideBar ? "ml-auto" : ""

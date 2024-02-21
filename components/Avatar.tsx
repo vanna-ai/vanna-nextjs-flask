@@ -5,6 +5,7 @@ type AvatarProps = {
   alt: string;
   className: string;
 };
+
 const Avatar: React.FC<AvatarProps> = (props: AvatarProps) => {
   const { path, alt, className } = props;
   return (
