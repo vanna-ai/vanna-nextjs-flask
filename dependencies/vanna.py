@@ -1,14 +1,13 @@
 import dataclasses
 import json
-
-import requests
-import pandas as pd
 from io import StringIO
+
+import pandas as pd
+import requests
 
 from .base.index import VannaBase
 from .types.index import (
     DataFrameJSON,
-    DataResult,
     Question,
     QuestionSQLPair,
     QuestionStringList,
@@ -17,7 +16,6 @@ from .types.index import (
     StatusWithId,
     StringData,
 )
-import sys
 
 
 class VannaDefault(VannaBase):
@@ -78,13 +76,13 @@ class VannaDefault(VannaBase):
         return dataclasses.asdict(obj)
 
     def system_message(self, message: str) -> any:
-        pass
+        return {"role": "system", "content": message}
 
     def user_message(self, message: str) -> any:
-        pass
+        return {"role": "user", "content": message}
 
     def assistant_message(self, message: str) -> any:
-        pass
+        return {"role": "assistant", "content": message}
 
     def get_training_data(self, **kwargs) -> pd.DataFrame:
         """
@@ -153,8 +151,6 @@ class VannaDefault(VannaBase):
             List[str] or None: The questions, or None if an error occurred.
         """
         d = self._rpc_call(method="generate_questions", params=[])
-
-        print(f"d: {d}", flush=True)
 
         if "result" not in d:
             return None
@@ -325,9 +321,20 @@ class VannaDefault(VannaBase):
         """
 
     def submit_prompt(self, prompt, **kwargs) -> str:
-        """
-        Not necessary for remote models as prompts are handled on the server side.
-        """
+        # JSON-ify the prompt
+        json_prompt = json.dumps(prompt)
+
+        params = [StringData(data=json_prompt)]
+
+        d = self._rpc_call(method="submit_prompt", params=params)
+
+        if "result" not in d:
+            return None
+
+        # Load the result into a dataclass
+        results = StringData(**d["result"])
+
+        return results.data
 
     def get_similar_question_sql(self, question: str, **kwargs) -> list:
         """
@@ -371,42 +378,3 @@ class VannaDefault(VannaBase):
         sql_answer = SQLAnswer(**d["result"])
 
         return sql_answer.sql
-
-    def generate_followup_questions(
-        self, question: str, df: pd.DataFrame, **kwargs
-    ) -> list[str]:
-        """
-        **Example:**
-        ```python
-        vn.generate_followup_questions(question="What is the average salary of employees?", df=df)
-        # ['What is the average salary of employees in the Sales department?', 'What is the average salary of employees in the Engineering department?', ...]
-        ```
-
-        Generate follow-up questions using the Vanna.AI API.
-
-        Args:
-            question (str): The question to generate follow-up questions for.
-            df (pd.DataFrame): The DataFrame to generate follow-up questions for.
-
-        Returns:
-            List[str] or None: The follow-up questions, or None if an error occurred.
-        """
-        params = [
-            DataResult(
-                question=question,
-                sql=None,
-                table_markdown="",
-                error=None,
-                correction_attempts=0,
-            )
-        ]
-
-        d = self._rpc_call(method="generate_followup_questions", params=params)
-
-        if "result" not in d:
-            return None
-
-        # Load the result into a dataclass
-        question_string_list = QuestionStringList(**d["result"])
-
-        return question_string_list.questions

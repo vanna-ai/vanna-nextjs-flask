@@ -35,7 +35,6 @@ def generate_questions():
         }
     )
 
-
 @app.route("/api/v1/generate_sql", methods=["GET"])
 def generate_sql():
     question = request.args.get("question")
@@ -49,7 +48,7 @@ def generate_sql():
 def run_sql():
     data = request.get_json()
     sql = data.get("sql") if data else None
-    print('sql', sql)
+    print("sql", sql)
     if sql is None:
         return jsonify({"type": "error", "error": "No SQL query provided", "sql": sql})
     try:
@@ -115,29 +114,6 @@ def add_training_data():
         return jsonify({"id": new_id})
     except Exception as e:
         return jsonify({"type": "error", "error": str(e)})
-
-
-@app.route("/api/v1/load_question", methods=["POST"])
-def load_question():
-    data = request.get_json()
-    question = data.get("question")
-    sql = data.get("sql")
-    df_json = data.get("df")
-    fig_json = data.get("fig_json", "{}")
-    followup_questions = data.get("followup_questions", [])
-    if not question or not sql or not df_json:
-        return jsonify({"type": "error", "error": "Missing required data"})
-
-    return jsonify(
-        {
-            "type": "question_data",
-            "question": question,
-            "sql": sql,
-            "df": df_json,
-            "fig": fig_json,
-            "followup_questions": followup_questions,
-        }
-    )
 
 
 if __name__ == "__main__":

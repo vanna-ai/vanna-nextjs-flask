@@ -4,7 +4,6 @@ import React, {
   ReactNode,
   useState,
   useMemo,
-  useEffect,
 } from "react";
 import { TMessage } from "@/helpers/types";
 

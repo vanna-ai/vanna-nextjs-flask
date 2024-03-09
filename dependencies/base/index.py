@@ -32,6 +32,7 @@ flowchart
         get_sql_prompt
         submit_prompt
         generate_question
+        generate_plotly_code
     end
 
     subgraph ChromaDB_VectorStore
@@ -44,21 +45,17 @@ flowchart
         get_related_documentation
     end
 ```
-
 """
 
 import os
 import re
+import traceback
 from abc import ABC, abstractmethod
 from typing import List, Tuple, Union
 
 import pandas as pd
 
-from ..exceptions.index import (
-    DependencyError,
-    ImproperlyConfigured,
-    ValidationError,
-)
+from ..exceptions.index import DependencyError, ImproperlyConfigured, ValidationError
 from ..types.index import TrainingPlan, TrainingPlanItem
 
 
@@ -66,6 +63,7 @@ class VannaBase(ABC):
     def __init__(self, config=None):
         self.config = config
         self.run_sql_is_set = False
+        self.static_documentation = ""
 
     def log(self, message: str):
         print(message)
@@ -88,6 +86,7 @@ class VannaBase(ABC):
         - [`get_sql_prompt`][vanna.base.base.VannaBase.get_sql_prompt]
 
         - [`submit_prompt`][vanna.base.base.VannaBase.submit_prompt]
+
 
         Args:
             question (str): The question to generate a SQL query for.
@@ -133,18 +132,35 @@ class VannaBase(ABC):
         else:
             return False
 
-    def generate_followup_questions(self, question: str, **kwargs) -> str:
-        question_sql_list = self.get_similar_question_sql(question, **kwargs)
-        ddl_list = self.get_related_ddl(question, **kwargs)
-        doc_list = self.get_related_documentation(question, **kwargs)
-        prompt = self.get_followup_questions_prompt(
-            question=question,
-            question_sql_list=question_sql_list,
-            ddl_list=ddl_list,
-            doc_list=doc_list,
-            **kwargs,
-        )
-        llm_response = self.submit_prompt(prompt, **kwargs)
+    def generate_followup_questions(
+        self, question: str, sql: str, df: pd.DataFrame, **kwargs
+    ) -> list:
+        """
+        **Example:**
+        ```python
+        vn.generate_followup_questions("What are the top 10 customers by sales?", df)
+        ```
+
+        Generate a list of followup questions that you can ask Vanna.AI.
+
+        Args:
+            question (str): The question that was asked.
+            df (pd.DataFrame): The results of the SQL query.
+
+        Returns:
+            list: A list of followup questions that you can ask Vanna.AI.
+        """
+
+        message_log = [
+            self.system_message(
+                f"You are a helpful data assistant. The user asked the question: '{question}'\n\nThe SQL query for this question was: {sql}\n\nThe following is a pandas DataFrame with the results of the query: \n{df.to_markdown()}\n\n"
+            ),
+            self.user_message(
+                "Generate a list of followup questions that the user might ask about this data. Respond with a list of questions, one per line. Do not answer with any explanations -- just the questions. Remember that there should be an unambiguous SQL query that can be generated from the question. Prefer questions that are answerable outside of the context of this conversation. Prefer questions that are slight modifications of the SQL query that was generated that allow digging deeper into the data. Each question will be turned into a button that the user can click to generate a new SQL query so don't use 'example' type questions. Each question must have a one-to-one correspondence with an instantiated SQL query."
+            ),
+        ]
+
+        llm_response = self.submit_prompt(message_log, **kwargs)
 
         numbers_removed = re.sub(r"^\d+\.\s*", "", llm_response, flags=re.MULTILINE)
         return numbers_removed.split("\n")
@@ -161,6 +177,36 @@ class VannaBase(ABC):
         question_sql = self.get_similar_question_sql(question="", **kwargs)
 
         return [q["question"] for q in question_sql]
+
+    def generate_summary(self, question: str, df: pd.DataFrame, **kwargs) -> str:
+        """
+        **Example:**
+        ```python
+        vn.generate_summary("What are the top 10 customers by sales?", df)
+        ```
+
+        Generate a summary of the results of a SQL query.
+
+        Args:
+            question (str): The question that was asked.
+            df (pd.DataFrame): The results of the SQL query.
+
+        Returns:
+            str: The summary of the results of the SQL query.
+        """
+
+        message_log = [
+            self.system_message(
+                f"You are a helpful data assistant. The user asked the question: '{question}'\n\nThe following is a pandas DataFrame with the results of the query: \n{df.to_markdown()}\n\n"
+            ),
+            self.user_message(
+                "Briefly summarize the data based on the question that was asked. Do not respond with any additional explanation beyond the summary."
+            ),
+        ]
+
+        summary = self.submit_prompt(message_log, **kwargs)
+
+        return summary
 
     # ----------------- Use Any Embeddings API ----------------- #
     @abstractmethod
@@ -385,6 +431,9 @@ class VannaBase(ABC):
             initial_prompt, ddl_list, max_tokens=14000
         )
 
+        if self.static_documentation != "":
+            doc_list.append(self.static_documentation)
+
         initial_prompt = self.add_documentation_to_prompt(
             initial_prompt, doc_list, max_tokens=14000
         )
@@ -565,6 +614,7 @@ class VannaBase(ABC):
 
             return df
 
+        self.static_documentation = "This is a Snowflake database"
         self.run_sql = run_sql_snowflake
         self.run_sql_is_set = True
 
@@ -590,7 +640,6 @@ class VannaBase(ABC):
     def ask(
         self,
         question: Union[str, None] = None,
-        print_results: bool = True,
         auto_train: bool = True,
     ) -> Union[
         Tuple[
@@ -613,7 +662,7 @@ class VannaBase(ABC):
             auto_train (bool): Whether to automatically train Vanna.AI on the question and SQL query.
 
         Returns:
-            Tuple[str, pd.DataFrame]: The SQL query, the results of the SQL query
+            Tuple[str, pd.DataFrame ]: The SQL query, the results of the SQL query, and the plotly figure.
         """
 
         if question is None:
@@ -625,44 +674,24 @@ class VannaBase(ABC):
             print(e)
             return None, None, None
 
-        if print_results:
-            try:
-                Code = __import__("IPython.display", fromList=["Code"]).Code
-                display(Code(sql))
-            except Exception as e:
-                print(sql)
-
         if self.run_sql_is_set is False:
-            print("If you want to run the SQL query, connect to a database first.")
-
-            if print_results:
-                return None
-            else:
-                return sql, None, None
+            print(
+                "If you want to run the SQL query, connect to a database first. See here: https://vanna.ai/docs/databases.html"
+            )
+            return sql, None, None
 
         try:
             df = self.run_sql(sql)
 
-            if print_results:
-                try:
-                    display = __import__(
-                        "IPython.display", fromList=["display"]
-                    ).display
-                    display(df)
-                except Exception as e:
-                    print(df)
-
             if len(df) > 0 and auto_train:
                 self.add_question_sql(question=question, sql=sql)
+            # Only generate plotly code if visualize is True
 
             return sql, df, None
 
         except Exception as e:
             print("Couldn't run sql: ", e)
-            if print_results:
-                return None
-            else:
-                return sql, None, None
+            return sql, None, None
 
     def train(
         self,
@@ -672,6 +701,26 @@ class VannaBase(ABC):
         documentation: str = None,
         plan: TrainingPlan = None,
     ) -> str:
+        """
+        **Example:**
+        ```python
+        vn.train()
+        ```
+
+        Train Vanna.AI on a question and its corresponding SQL query.
+        If you call it with no arguments, it will check if you connected to a database and it will attempt to train on the metadata of that database.
+        If you call it with the sql argument, it's equivalent to [`vn.add_question_sql()`][vanna.base.base.VannaBase.add_question_sql].
+        If you call it with the ddl argument, it's equivalent to [`vn.add_ddl()`][vanna.base.base.VannaBase.add_ddl].
+        If you call it with the documentation argument, it's equivalent to [`vn.add_documentation()`][vanna.base.base.VannaBase.add_documentation].
+        Additionally, you can pass a [`TrainingPlan`][vanna.types.TrainingPlan] object. Get a training plan with [`vn.get_training_plan_generic()`][vanna.base.base.VannaBase.get_training_plan_generic].
+
+        Args:
+            question (str): The question to train on.
+            sql (str): The SQL query to train on.
+            ddl (str):  The DDL statement.
+            documentation (str): The documentation to train on.
+            plan (TrainingPlan): The training plan to train on.
+        """
 
         if question and not sql:
             raise ValidationError(f"Please also provide a SQL query")
@@ -718,6 +767,76 @@ class VannaBase(ABC):
         df_tables = self.run_sql(f"SELECT * FROM {database}.INFORMATION_SCHEMA.TABLES")
 
         return df_tables
+
+    def get_training_plan_generic(self, df) -> TrainingPlan:
+        """
+        This method is used to generate a training plan from an information schema dataframe.
+
+        Basically what it does is breaks up INFORMATION_SCHEMA.COLUMNS into groups of table/column descriptions that can be used to pass to the LLM.
+
+        Args:
+            df (pd.DataFrame): The dataframe to generate the training plan from.
+
+        Returns:
+            TrainingPlan: The training plan.
+        """
+        # For each of the following, we look at the df columns to see if there's a match:
+        database_column = df.columns[
+            df.columns.str.lower().str.contains("database")
+            | df.columns.str.lower().str.contains("table_catalog")
+        ].to_list()[0]
+        schema_column = df.columns[
+            df.columns.str.lower().str.contains("table_schema")
+        ].to_list()[0]
+        table_column = df.columns[
+            df.columns.str.lower().str.contains("table_name")
+        ].to_list()[0]
+        column_column = df.columns[
+            df.columns.str.lower().str.contains("column_name")
+        ].to_list()[0]
+        data_type_column = df.columns[
+            df.columns.str.lower().str.contains("data_type")
+        ].to_list()[0]
+
+        plan = TrainingPlan([])
+
+        for database in df[database_column].unique().tolist():
+            for schema in (
+                df.query(f'{database_column} == "{database}"')[schema_column]
+                .unique()
+                .tolist()
+            ):
+                for table in (
+                    df.query(
+                        f'{database_column} == "{database}" and {schema_column} == "{schema}"'
+                    )[table_column]
+                    .unique()
+                    .tolist()
+                ):
+                    df_columns_filtered_to_table = df.query(
+                        f'{database_column} == "{database}" and {schema_column} == "{schema}" and {table_column} == "{table}"'
+                    )
+                    doc = f"The following columns are in the {table} table in the {database} database:\n\n"
+                    doc += df_columns_filtered_to_table[
+                        [
+                            database_column,
+                            schema_column,
+                            table_column,
+                            column_column,
+                            data_type_column,
+                        ]
+                    ].to_markdown()
+
+                    plan._plan.append(
+                        TrainingPlanItem(
+                            item_type=TrainingPlanItem.ITEM_TYPE_IS,
+                            item_group=f"{database}.{schema}",
+                            item_name=table,
+                            item_value=doc,
+                        )
+                    )
+
+        return plan
 
     def get_training_plan_snowflake(
         self,
@@ -847,4 +966,5 @@ class VannaBase(ABC):
             except Exception as e:
                 print(e)
 
+        print(f"plan : {plan}")
         return plan

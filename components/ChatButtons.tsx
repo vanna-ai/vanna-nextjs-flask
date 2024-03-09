@@ -8,8 +8,8 @@ type Props = {
   mode: string;
   messageHistory: Array<any>;
   value: TMessage;
-  handleRunClick: (value: TMessage) => any;
-  handleEditClick: () => any;
+  handleRunClick: (value: TMessage, ix: number) => any;
+  handleEditClick: (ix: number) => any;
   handleSaveClick: (ix: number) => any;
 };
 
@@ -29,18 +29,19 @@ const ChatButtons = (props: Props) => {
 
   // Function to render the buttons based on the mode
   const renderButtons = () => {
+    console.log({ mode });
     if (mode === MODES.run) {
       return (
         <>
           <Button
             text={MODES.run}
             className=""
-            handleClick={() => handleRunClick(value)}
+            handleClick={() => handleRunClick(value, currentIndex)}
           />
           <Button
             text={MODES.edit}
             className=""
-            handleClick={() => handleEditClick()}
+            handleClick={() => handleEditClick(currentIndex)}
           />
         </>
       );
