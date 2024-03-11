@@ -10,7 +10,7 @@ const Button = (props: Props) => {
   const { text, className, handleClick } = props;
   return (
     <button
-      className={`border p-2 rounded hover:bg-black hover:border-black hover:text-white ${className}`}
+      className={`flex items-center justify-center border p-2 w-16 h-10 rounded hover:bg-black hover:border-black hover:text-white ${className}`}
       onClick={handleClick}
     >
       {text}

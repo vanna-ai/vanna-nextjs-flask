@@ -8,6 +8,7 @@ const MESSAGE_TYPES = {
   sql: "sql",
   df: "df",
   error: "error",
+  ai: "ai",
 };
 
 export { MODES, MESSAGE_TYPES };

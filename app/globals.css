@@ -34,3 +34,15 @@ body {
     text-wrap: balance;
   }
 }
+
+.hljs-string {
+  color: #007700 !important;
+}
+
+.hljs {
+  background-color: rgb(31 41 55 / 1) !important;
+  color: #fefefe !important;
+}
+.hljs-keyword {
+  color: #aa0000 !important;
+}

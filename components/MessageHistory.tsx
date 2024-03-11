@@ -8,28 +8,32 @@ import Table from "./Table";
 import { useRoot } from "@/context/ContextProvider";
 import ChatButtons from "./ChatButtons";
 import useChatScroll from "./ChatScroll";
+import CodeContainer from "./CodeContainer";
 
 type MessageHistoryProps = {
   runSQL: (sql: string) => Promise<RUNResponse>;
 };
+type ModesState = {
+  [key: number]: string;
+};
 
 const MessageHistory = (props: MessageHistoryProps) => {
   const { runSQL } = props;
-  const [mode, setMode] = useState(MODES.run);
+  const [modes, setModes] = useState<ModesState>({});
 
   const { messageHistory, handleChangeMessageHistory } = useRoot();
   const chatRef = useChatScroll(messageHistory);
 
-  const handleModeChange = useCallback((value: string) => {
-    setMode(value);
+  const handleModeChange = useCallback((ix: number, value: string) => {
+    setModes((prevModes) => ({ ...prevModes, [ix]: value }));
   }, []);
 
   const [currSQL, setCurrSQL] = useState("");
 
   const handleRunClick = useCallback(
-    async (val: TMessage) => {
+    async (val: TMessage, ix: number) => {
       try {
-        handleModeChange(MODES.run);
+        handleModeChange(ix, MODES.run);
         let dfResponse = await runSQL(val.ai);
         let newMessage: TMessage = {
           ai: dfResponse?.df,
@@ -46,6 +50,7 @@ const MessageHistory = (props: MessageHistoryProps) => {
             type: MESSAGE_TYPES.error,
           };
         }
+
         handleChangeMessageHistory(newMessage);
       } catch (error: any) {
         console.error(error);
@@ -54,46 +59,56 @@ const MessageHistory = (props: MessageHistoryProps) => {
     [handleModeChange, runSQL, handleChangeMessageHistory]
   );
 
-  const handleEditClick = () => {
-    handleModeChange(MODES.edit);
+  const handleEditClick = (ix: number) => {
+    handleModeChange(ix, MODES.edit);
   };
 
   const handleSaveClick = useCallback(
     (ix: number) => {
-      handleModeChange(MODES.run);
+      handleModeChange(ix, MODES.run);
 
-      const newMessageHistory = messageHistory.map((msg, index): TMessage => {
-        console.log("ixid", ix, index);
-        return index === ix ? { ...msg, ai: currSQL } : msg;
-      });
-
-      handleChangeMessageHistory(undefined, newMessageHistory);
+      if (currSQL.length > 0) {
+        const newMessageHistory = messageHistory.map((msg, index): TMessage => {
+          console.log("ixid", ix, index);
+          return index === ix ? { ...msg, ai: currSQL } : msg;
+        });
+        handleChangeMessageHistory(undefined, newMessageHistory);
+      }
     },
     [handleModeChange, handleChangeMessageHistory, messageHistory, currSQL]
-  ); // Dependencies
+  );
 
-  const renderChild = (val: TMessage) => {
+  const renderChild = (val: TMessage, ix: number) => {
     const handleChangeSQL = (e: ChangeEvent<HTMLTextAreaElement>): void => {
-      setCurrSQL(e?.target?.value);
+      e.preventDefault();
+      const value = e.target.value;
+      setCurrSQL(value);
     };
+
+    const mode = modes[ix] || MODES.run;
 
     if (mode === MODES.edit) {
       return (
         <textarea
-          className="flex text-black w-[30rem] h-[15rem] font-bold text-sm rounded p-1"
-          defaultValue={val?.ai}
+          className="flex p-6 text-white bg-gray-800 w-[50vw] min-h-48 font-base text-sm rounded"
+          defaultValue={val.ai}
           onChange={handleChangeSQL}
         />
       );
     } else if (val.type === MESSAGE_TYPES.df) {
       const data = JSON.parse(val.ai);
       if (Array.isArray(data) && data.length === 0) {
-        return <p className="font-bold text-base">Relevant data not found!</p>;
+        return <p className="font-bold text-xs">Relevant data not found!</p>;
       } else {
         return <Table data={data} />;
       }
+    } else if (val.type === MESSAGE_TYPES.sql) {
+      return <CodeContainer language="sql">{val.ai}</CodeContainer>;
     } else {
-      return null;
+      const isAi = [MESSAGE_TYPES.error, MESSAGE_TYPES.ai].includes(val.type);
+      const value = isAi ? val.ai : val.user;
+
+      return <div className="font-normal text-base">{value}</div>;
     }
   };
 
@@ -104,18 +119,17 @@ const MessageHistory = (props: MessageHistoryProps) => {
           {val?.ai && (
             <div className="flex flex-col items-start justify-center">
               <ChatBubble
-                value={val?.ai}
                 title="Vanna"
                 logo={"/assets/vanna_circle.png"}
                 alt="red"
-                child={renderChild(val)}
+                child={renderChild(val, ix)}
               />
 
               <ChatButtons
                 currentIndex={ix}
                 messageHistory={messageHistory}
                 value={val}
-                mode={mode}
+                mode={modes[ix] || MODES.run}
                 handleRunClick={handleRunClick}
                 handleEditClick={handleEditClick}
                 handleSaveClick={handleSaveClick}
@@ -125,10 +139,10 @@ const MessageHistory = (props: MessageHistoryProps) => {
 
           {val?.user && (
             <ChatBubble
-              value={val?.user}
               title="User"
               logo={"/assets/user.png"}
               alt="blue"
+              child={renderChild(val, ix)}
             />
           )}
         </div>

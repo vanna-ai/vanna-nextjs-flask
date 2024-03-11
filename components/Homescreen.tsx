@@ -42,10 +42,10 @@ const Homescreen = (props: HomescreenProps) => {
   };
 
   return (
-    <div className="flex flex-col w-full h-[90%] items-center justify-center">
-      <div className="w-20 h-20 rounded-full p-0 m-0 bg-black flex items-center justify-center">
+    <div className="m-2 flex flex-col w-full h-full l items-center justify-center">
+      <div className="w-20 h-20 p-2 m-2 rounded-full bg-black flex items-center justify-center">
         <Image
-          className={`logo p-0 m-0`}
+          className={`logo`}
           alt={"SQLAI"}
           src={"/assets/vanna_circle.png"}
           width={200}
@@ -54,9 +54,9 @@ const Homescreen = (props: HomescreenProps) => {
       </div>
       <p className="font-bold p-2 m-2">Talk to your data!</p>
 
-      <div className="flex flex-col justify-start items-start">
+      <div className="flex flex-col justify-start items-start max-h-[54vh] overflow-y-scroll">
         <p>{questions && "header" in questions && questions?.header}</p>
-        {!loading ? (
+        {!loading &&
           questions?.questions?.map((ques: string) => {
             return (
               <button
@@ -67,10 +67,8 @@ const Homescreen = (props: HomescreenProps) => {
                 {ques}
               </button>
             );
-          })
-        ) : (
-          <div>Loading....</div>
-        )}
+          })}
+        {loading && <div>Loading....</div>}
       </div>
     </div>
   );
